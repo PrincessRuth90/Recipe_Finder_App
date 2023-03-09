@@ -1,69 +1,74 @@
-const appid = "afa6ee31";
-const appkey = "c27af08cc6c3c979e02dbcbe553d6b7d";
-const baseUrl = "https//api.edaman.com/api/recipes/v2?type=public&app_id=${appid}&app_key=${appkey}";
-const recipeContainer = document.querySelector("recipe-container");
-const txtSearch = document.querySelector("#txtSearch");
-const btnFind = document.querySelector(".btn");
-const loadingEle = document.querySelector("#loading");
+let searchButton = document.querySelector('.srch-btn');
+let recipeButton = document.querySelector('.btn');
+let closeButton = document.querySelector('#close');
+searchButton.addEventListener('click', getIngredient);
 
-btnFind.addEventListener("click",()->loadRecipes(txtSearch.value));
-
-txtSearch.addEventListener("keyup", (e) -> {
-    const inputVal = txtSearch.value; 
-      if(e.keycode===13) {
-         loadRecipes()
-      }
-});
-
-const toggleload = (element, isShow) -> {
-    element.classList.toggle("hide",isShow);
-};
-const setScrollPosition = () -> {
-     recipeContainer.scrollTo({ top: 0, behavior: "snooth" });
-};
-
-function loadRecipes(type = "paneer") {
-   toggleLoad(loadingEle, false);
-    const url = baseUrl+"&q=$(type)";
-    fetch(Url)
-       .then((res -> res.json())
-       .then((data ->  {
-          renderRecipes(data.hits))
-          toggleLoad(loadingEle, true);
-       })
-       .catch((error -> toggleLoad(loadingEle, true))
-       .finally(() -> setScrollPosition());
+function getIngredient() {
+    let item = "";
+    let input = document.querySelector('#search').value.trim();
+    //filter by main ingredient
+    let url = `https://www.themealdb.com/api/json/v1/1/filter.php?i=${input}`;
+    fetch(url)
+        .then((data) => {
+            return data.json();
+        })
+        .then((recipe) => {
+            if (recipe.meals) {
+                recipe.meals.forEach((meal) => {
+                    //console.log(recipe.meals);
+                    let ingredient =
+                        `<div class="item" data-id='${meal.idMeal}'>
+                <picture class="image">
+                    <img src="${meal.strMealThumb}">
+                </picture>
+                <section class="info">
+                    <h2>${meal.strMeal}</h2>
+                    <button class="btn">Get Recipe</button>
+                </section>
+            </div>`;
+                    item += ingredient;
+                    document.querySelector('.ingredients').innerHTML = item;
+                    /*If you use insertAdjacentHTML here, and want to re enter in input box and get another results. So it don't work as you want. 
+                    You will see the another ingredients below to the current recipe items that you have already by first onclick on search button.*/
+                })
+            } else {
+                item = "No Recipe Found!";
+                document.querySelector('.ingredients').innerHTML = item;
+            }
+        })
+    input.value = "";
 }
-loadRecipes()
 
-const getRecipeStepsStr=(ingredientLines - []) -> {
-   let str = "";
-   for (var step of ingredientLines) {
-       str=str+`<li>${step}</li>`
-   }
-   return str;
-};
+document.querySelector('.ingredients').addEventListener('click', getRecipe);
 
-const renderRecipes = (recipeList=[]) -> {
-       recipeContainer.innerHTML = " ";
-    recipeList.forEach(recipeobj) -> {
-     const {
-       label: recipeTitle,
-       ingredientLines,
-       image: recipeImage,
-     } = recipeobj.recipe;
-     const recipeStepStr = getRecipeStepsStr(ingredientLines);
-     const htmlStr = ` <div class="recipe">
-         <div class="recipe-title">${recipeTitle}</div>
-            <div classs="recipe-image>
-            <img src="${recipeTitle}" />
-            </div>
-            <div classs="recipe-text>
-              <ul>
-                ${recipeStepStr}
-              </ul>
-            </div>
-            </div> ";
-       recipeContainer.insertAdjacentHTML("beforend", htmlStr);
-});
-};
+function getRecipe(e) {
+    e.preventDefault();
+    if (e.target.matches('.btn')) {
+        let container = e.target.parentNode.parentNode;
+        //console.log(container.dataset.id);
+        fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${container.dataset.id}`)
+            .then((response) => {
+                return response.json();
+            })
+            .then((data) => {
+                let meal = data.meals;
+                meal = meal[0];
+                //console.log(meal);
+                let html = `
+    	    <h2>${meal.strMeal}</h2>
+    	    <button class="recipe-btn">${meal.strCategory}</button>
+    		<h3>Instructions:</h3>
+    		<p>${meal.strInstructions}</p>
+    		<footer><a href="${meal.strYoutube}" target="_blank">Watch Recipe</a></footer>
+    	</div>`;
+                document.querySelector('.steps').innerHTML = html;
+                document.querySelector('.steps').parentElement.classList.add('step');
+            })
+    }
+}
+
+closeButton.addEventListener('click', closeRecipe);
+
+function closeRecipe(){
+	document.querySelector('.steps').parentElement.classList.remove('step');
+}
